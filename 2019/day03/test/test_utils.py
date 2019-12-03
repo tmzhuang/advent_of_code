@@ -8,12 +8,14 @@ def test_attach_R3():
     res = attach(move, init)
     assert res == expected
 
+
 def test_attach_D2():
     init = [(1,1),(2,-2)]
     move = 'D2'
     expected = [(1,1),(2,-2),(2,-3),(2,-4)]
     res = attach(move, init)
     assert res == expected
+
 
 def test_get_points():
     init = [(1,1),(2,-2)]
@@ -25,7 +27,7 @@ def test_intersects():
     w1 = [(0,0),(0,1),(3,3)]
     w2 = [(0,0),(1,0),(2,0),(3,3)]
     common = intersects(w1, w2)
-    assert (0,0) in common
+    assert (0,0) not in common
     assert (3,3) in common
 
 
@@ -45,3 +47,17 @@ def test_closest_point_2():
     m1 = 'R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51'
     m2 = 'U98,R91,D20,R16,D67,R40,U7,R15,U6,R7'
     assert closes_point(m1, m2) == 135
+
+
+def test_calc_dist():
+    pt = (3,3)
+    wire = [(0,0),(0,1),(3,3),(2,1),(3,3)]
+    assert calc_dist(wire, pt) == 2
+    pt = (0,0)
+    assert calc_dist(wire, pt) == 0
+
+
+def test_calculate_shortest_move():
+    m1 = 'R8,U5,L5,D3'
+    m2 = 'U7,R6,D4,L4'
+    assert calculate_shortest_move(m1, m2) == 30

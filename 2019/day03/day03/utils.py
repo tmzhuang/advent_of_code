@@ -37,11 +37,12 @@ def intersects(*wires):
     for wire in wires[1:]:
         wire = set(wire)
         intersects &= wire
+    intersects.remove((0,0))
     return intersects
 
 
 def closes_point(*move_strs):
-    wires = [get_points(move_str)[1:] for move_str in move_strs]
+    wires = [get_points(move_str) for move_str in move_strs]
     common = intersects(*wires)
     distances = [mdist(pt) for pt in common]
     return np.minimum.reduce(distances)
@@ -53,5 +54,26 @@ def mdist(p1, p2=(0,0)):
     return abs(a-c) + abs(b-d)
 
 
-def calculate_shortest_moves(*move_strs):
+def calc_dist(wire, pt):
+    count = 0
+    for point in wire:
+        if point == pt:
+            return count
+        count += 1
+    raise ValueError(f'Point {pt} not found in wire {wire}.')
+
+
+def calculate_shortest_move(*move_strs):
+    wires = [get_points(move_str) for move_str in move_strs]
+    common = intersects(*wires)
+    dist = None
+    for pt in common:
+        wire_dist = 0
+        for wire in wires:
+            wire_dist += calc_dist(wire, pt)
+        if not dist:
+            dist = wire_dist
+        else:
+            dist = min(dist, wire_dist)
+    return dist
 
