@@ -41,7 +41,7 @@ def intersects(*wires):
     return intersects
 
 
-def closes_point(*move_strs):
+def closest_point(*move_strs):
     wires = [get_points(move_str) for move_str in move_strs]
     common = intersects(*wires)
     distances = [mdist(pt) for pt in common]
