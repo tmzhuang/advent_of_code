@@ -53,11 +53,13 @@ def intersect(s1, s2):
 
 
 def get_common_points(wire1, wire2):
-    common = list()
-    for s1, s2 in product(wire1, wire2):
-        pt = intersect(s1, s2)
-        if (pt is not None) and (not np.array_equal(pt, np.array([0,0]))):
-            common.append(pt)
+    common = dict()
+    for i, s1 in enumerate(wire1):
+        for j, s2 in enumerate(wire2):
+            pt = intersect(s1, s2)
+            # exclude (0,0) since we always start there
+            if (pt is not None) and (not np.array_equal(pt, np.array([0,0]))):
+                common[(i,j)] = pt
     return common
 
 
@@ -65,7 +67,7 @@ def closest_point(move_str1, move_str2):
     wire1 = get_wire(move_str1)
     wire2 = get_wire(move_str2)
     common = get_common_points(wire1, wire2)
-    distances = [mdist(pt) for pt in common]
+    distances = [mdist(pt) for pt in common.values()]
     return np.minimum.reduce(distances)
 
 
@@ -86,17 +88,47 @@ def point_is_in(segment, pt):
     s = (pt-p) / u
 
 
-def calculate_shortest_move(*move_strs):
-    wires = [get_points(move_str) for move_str in move_strs]
-    common = intersects(*wires)
-    dist = None
-    for pt in common:
-        wire_dist = 0
-        for wire in wires:
-            wire_dist += calc_dist(wire, pt)
-        if not dist:
-            dist = wire_dist
+def calc_length(wire, index, p):
+    '''
+    Given point p which is on the segement at index in wire, returns the sum
+    length of all previous segments in the wire plus the length of the start
+    of the segement at index to point p
+    '''
+    length = 0
+    for i in range(index+1):
+        # segment given as vectors p + u
+        p0, u = wire[i]
+        if i != index:
+            # point is not in p
+            # euclidean distance of vector u
+            length += np.linalg.norm(u)
         else:
-            dist = min(dist, wire_dist)
-    return dist
+            # point is in p
+            length += np.linalg.norm(p-p0)
+    return length
 
+
+def calculate_shortest_move(move_str1, move_str2):
+    wire1 = get_wire(move_str1)
+    wire2 = get_wire(move_str2)
+    common = get_common_points(wire1, wire2)
+    pt_set = set()
+    min_dist = None
+    for k, p in common.items():
+        # we only care about the first occurence of the intersect,
+        # continue if we've seen it
+        pt_tuple = tuple(p)
+        if pt_tuple in pt_set:
+            continue
+        pt_set.add(pt_tuple)
+        # i indicates index of segment in wire1 that the intersect occured
+        # j indicates index of segment in wire2 that the intersect occured
+        i,j = k
+        # p is the point of intersection
+        d1 = calc_length(wire1, i, p)
+        d2 = calc_length(wire2, j, p)
+        if not min_dist:
+            min_dist = d1 + d2
+        else:
+            min_dist = min(min_dist, d1 + d2)
+    return min_dist
