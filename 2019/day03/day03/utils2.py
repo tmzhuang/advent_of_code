@@ -63,30 +63,13 @@ def get_common_points(wire1, wire2):
     return common
 
 
-def closest_point(move_str1, move_str2):
-    wire1 = get_wire(move_str1)
-    wire2 = get_wire(move_str2)
-    common = get_common_points(wire1, wire2)
+def closest_point(wire1, wire2, common):
     distances = [mdist(pt) for pt in common.values()]
     return np.minimum.reduce(distances)
 
 
 def mdist(p1, p2=np.array([0,0])):
     return abs(p1[0]-p2[0]) + abs(p1[1]-p2[1])
-
-
-def calc_dist(wire, pt):
-    dist = 0
-    for point in wire:
-        if point == pt:
-            return count
-        count += 1
-    raise ValueError(f'Point {pt} not found in wire {wire}.')
-
-def point_is_in(segment, pt):
-    p, u = segment
-    s = (pt-p) / u
-
 
 def calc_length(wire, index, p):
     '''
@@ -108,10 +91,7 @@ def calc_length(wire, index, p):
     return length
 
 
-def calculate_shortest_move(move_str1, move_str2):
-    wire1 = get_wire(move_str1)
-    wire2 = get_wire(move_str2)
-    common = get_common_points(wire1, wire2)
+def calculate_shortest_move(wire1, wire2, common):
     pt_set = set()
     min_dist = None
     for k, p in common.items():
