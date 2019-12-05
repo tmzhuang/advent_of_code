@@ -1,18 +1,19 @@
-from operator import add, mul
+from operator import add, mul, lt, eq
 from collections import deque
 
 import numpy as np
 
-from .opcode import ADD, MUL, GET, PUT, END
+from .opcode import ADD, MUL, GET, PUT, JNZ, JZ, LT, EQ, END
 from .addr_mode import POSITION, IMMEDIATE
 
 op_map = {
         ADD: add,
         MUL: mul,
+        LT: lt,
+        EQ: eq,
         }
 
 def run_prog(ip, prog):
-    breakpoint()
     try:
         encoded_op_code = prog[ip]
     except IndexError as e:
@@ -21,7 +22,8 @@ def run_prog(ip, prog):
     if op_code == END:
         return prog
     else:
-        if op_code in [ADD, MUL]:
+        if op_code in [ADD, MUL, LT, EQ]:
+            # print(prog[ip:ip+4])
             param1 = get_param(ip+1, modes[0], prog)
             param2 = get_param(ip+2, modes[1], prog)
             dest = prog[ip+3]
@@ -32,16 +34,30 @@ def run_prog(ip, prog):
             except KeyError as e:
                 raise ValueError(f'Invalid opcode found: {op_code}.')
         elif op_code == GET:
+            # print(prog[ip:ip+2])
             dest = prog[ip+1]
             result = input('Enter input:')
             try:
                 result = int(result)
                 prog[dest] = result
+                # print(f'Storing {result} at {dest}')
             except ValueError:
                 raise ValueError(f'Invalid input {result}.')
         elif op_code == PUT:
+            # print(prog[ip:ip+2])
             dest = prog[ip+1]
-            print(prog[dest])
+            if modes and modes[0] == IMMEDIATE:
+                print(dest)
+            # print(f'Printing data at {dest}')
+            else:
+                print(prog[dest])
+        if op_code in [JNZ, JZ]:
+            param1 = get_param(ip+1, modes[0], prog)
+            param2 = get_param(ip+2, modes[1], prog)
+            if (((op_code == JNZ) and param1 != 0) or
+                    ((op_code == JZ) and param1 == 0)):
+                ip = param2
+                return run_prog(ip, prog)
         ip += nargs + 1
         return run_prog(ip, prog)
 
@@ -76,8 +92,10 @@ def parse_op_code(encoded_op_code):
 
 
 def get_nargs(op_code):
-    if op_code in [ADD, MUL]:
+    if op_code in [ADD, MUL, LT, EQ]:
         return 3
+    if op_code in [JNZ, JZ]:
+        return 2
     elif op_code in [GET, PUT]:
         return 1
     elif op_code in [END]:
