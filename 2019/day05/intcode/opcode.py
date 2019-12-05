@@ -1,0 +1,5 @@
+ADD = 1
+MUL = 2
+GET = 3
+PUT = 4
+END = 99
