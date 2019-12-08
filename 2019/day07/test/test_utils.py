@@ -1,6 +1,7 @@
 import numpy as np
 
 from day07.utils import *
+from day07.amplifier import Amplifier
 
 def test_get_modes():
     ans = get_modes(4, np.array([1,0]))
@@ -53,3 +54,11 @@ def test_get_thruster_input_2():
     ans = get_thruster_input(phases, prog)
     expected = 54321
     assert ans == expected
+
+def test_amplifer():
+    prog = [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,
+            27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5]
+    prog_copy = prog.copy()
+    output, _, _ = run_prog(0, prog_copy, phase=0, input_=0)
+    amp = Amplifier(name='a', prog=prog, phase=0)
+    assert amp.run(0) == output

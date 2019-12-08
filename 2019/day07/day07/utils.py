@@ -13,14 +13,14 @@ op_map = {
         EQ: eq,
         }
 
-def run_prog(ip, prog, phase=None, input_=None, phase_set=False, input_set=False, output=None):
+def run_prog(ip, prog, phase=None, input_=None, phase_set=False, output=None):
     try:
         encoded_op_code = prog[ip]
     except IndexError as e:
         raise ValueError(f'Program executing out of bounds.')
     op_code, nargs, modes = parse_op_code(encoded_op_code)
     if op_code == END:
-        return prog
+        return None
     else:
         if op_code in [ADD, MUL, LT, EQ]:
             # print(prog[ip:ip+4])
@@ -39,11 +39,10 @@ def run_prog(ip, prog, phase=None, input_=None, phase_set=False, input_set=False
             if not phase_set:
                 result = phase
                 phase_set = True
-            elif not input_set:
-                result = input_
-                input_set = True
-            else:
+            elif input_ is None:
                 result = int(input('Enter input:'))
+            else:
+                result = input_
             try:
                 prog[dest] = result
                 # print(f'Storing {result} at {dest}')
@@ -59,16 +58,16 @@ def run_prog(ip, prog, phase=None, input_=None, phase_set=False, input_set=False
                 if output == 'stdout':
                     print(prog[dest])
                 else:
-                    return prog[dest]
+                    return prog[dest], ip+nargs+1, phase_set
         if op_code in [JNZ, JZ]:
             param1 = get_param(ip+1, modes[0], prog)
             param2 = get_param(ip+2, modes[1], prog)
             if (((op_code == JNZ) and param1 != 0) or
                     ((op_code == JZ) and param1 == 0)):
                 ip = param2
-                return run_prog(ip, prog, phase=phase, input_=input_, phase_set=phase_set, input_set=input_set, output=output)
+                return run_prog(ip, prog, phase=phase, input_=input_, phase_set=phase_set, output=output)
         ip += nargs + 1
-        return run_prog(ip, prog, phase=phase, input_=input_, phase_set=phase_set, input_set=input_set, output=output)
+        return run_prog(ip, prog, phase=phase, input_=input_, phase_set=phase_set, output=output)
 
 
 def get_digits(number):
@@ -139,6 +138,6 @@ def get_thruster_input(phases, prog, input_=0):
         prog_copy = prog.copy()
         # print(f'INPUT: ({phase}, {input_})')
         # print(amp)
-        input_ = run_prog(0, prog_copy, phase=phase, input_=input_)
+        input_, _, _ = run_prog(0, prog_copy, phase=phase, input_=input_)
         # print(f'OUTPUT: {input_}')
     return input_
