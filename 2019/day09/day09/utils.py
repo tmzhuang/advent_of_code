@@ -5,6 +5,7 @@ import numpy as np
 
 from .opcode import ADD, MUL, GET, PUT, JNZ, JZ, LT, EQ, REL, END
 from .addr_mode import POSITION, IMMEDIATE, RELATIVE
+from .iostream import IOStream
 
 op_map = {
         ADD: add,
@@ -13,66 +14,48 @@ op_map = {
         EQ: eq,
         }
 
-def run_prog(ip, prog, rel=0, stdin=deque(), stdout=deque):
-    try:
-        encoded_op_code = prog[ip]
-    except IndexError as e:
-        raise ValueError(f'Program executing out of bounds.')
-    op_code, nargs, modes = parse_op_code(encoded_op_code)
-    if op_code == END:
-        return None
-    else:
-        if op_code in [ADD, MUL, LT, EQ]:
-            # print(prog[ip:ip+4])
-            param1 = get_param(ip+1, modes[0], prog, rel=rel)
-            param2 = get_param(ip+2, modes[1], prog, rel=rel)
-            dest = prog[ip+3]
-            try:
-                func = op_map[op_code]
-                result = int(func(param1, param2))
-                prog[dest] = result
-            except KeyError as e:
-                raise ValueError(f'Invalid opcode found: {op_code}.')
-        elif op_code == GET:
-            # print(prog[ip:ip+2])
-            dest = prog[ip+1]
-            if not phase_set:
-                result = phase
-                phase_set = True
-            elif input_ is None:
-                result = int(input('Enter input:'))
-            else:
-                result = input_
-            try:
-                prog[dest] = result
-                # print(f'Storing {result} at {dest}')
-            except ValueError:
-                raise ValueError(f'Invalid input {result}.')
-        elif op_code == PUT:
+def run_prog(prog, ip=0, rel=0, in_=None, in_arr=[], out=None, out_arr=[], breaks=[], step=False,
+        verbose=False):
+    if not in_:
+        in_ = IOStream(in_='stdin', arr=in_arr)
+    if not out:
+        out = IOStream(out='stdout', arr=out_arr)
+    while True:
+        op_code, nargs, modes = parse_op_code(prog[ip])
+        if op_code == END:
+            return 0
+        if (ip in breaks) or step:
             breakpoint()
-            # print(prog[ip:ip+2])
-            dest = prog[ip+1]
-            do_put(prog, dest, modes[0], output=output, rel=rel)
-            if modes and modes[0] == IMMEDIATE:
-                print(dest)
-            # print(f'Printing data at {dest}')
-            else:
-                if output == 'stdout':
-                    print(prog[dest])
-                else:
-                    return prog[dest], ip+nargs+1, phase_set
+        params = get_params(ip, nargs, modes, prog, rel)
+        if verbose:
+            print(f'{ip=}, {rel=}')
+            print(prog[ip], params)
+        if op_code in [ADD, MUL, LT, EQ]:
+            operands, addr, mode = params
+            func = op_map[op_code]
+            result = int(func(*operands))
+            store(prog, result, addr, mode, rel)
+        elif op_code == GET:
+            _, addr, mode = params
+            store(prog, in_.read(), addr, mode, rel)
+        elif op_code == PUT:
+            _, value, mode = params
+            item = resolve(prog, value, mode, rel)
+            out.write(item)
         elif op_code == REL:
-            offset = get_param(ip+1, modes[0], prog, rel=rel)
+            _, value, mode = params
+            offset = resolve(prog, value, mode, rel)
             rel += offset
         if op_code in [JNZ, JZ]:
-            param1 = get_param(ip+1, modes[0], prog, rel=rel)
-            param2 = get_param(ip+2, modes[1], prog, rel=rel)
-            if (((op_code == JNZ) and param1 != 0) or
-                    ((op_code == JZ) and param1 == 0)):
-                ip = param2
-                return run_prog(ip, prog, phase=phase, input_=input_, phase_set=phase_set, output=output, rel=rel)
+            # print(prog[ip])
+            operands, value, mode = params
+            operand, = operands
+            if (((op_code == JNZ) and operand != 0) or
+                    ((op_code == JZ) and operand == 0)):
+                addr = resolve(prog, value, mode, rel)
+                ip = addr
+                continue
         ip += nargs + 1
-        return run_prog(ip, prog, phase=phase, input_=input_, phase_set=phase_set, output=output, rel=rel)
 
 
 def get_digits(number):
@@ -82,6 +65,23 @@ def get_digits(number):
         number, digit = divmod(number, 10)
         digits.appendleft(digit)
     return np.array(digits)
+
+
+def resolve(prog, value, mode, rel):
+    if mode == POSITION:
+        return prog[value]
+    elif mode == RELATIVE:
+        return prog[value + rel]
+    else:
+        return value
+
+
+def store(prog, value, addr, mode, rel):
+    if mode == RELATIVE:
+        addr += rel
+    if mode not in [POSITION, RELATIVE]:
+        raise ValueError(f'Writing with mode {mode} is unsupported.')
+    prog[addr] = value
 
 
 def parse_op_code(encoded_op_code):
@@ -128,26 +128,19 @@ def get_modes(nargs, modes_arr):
     return np.flip(modes)
 
 
-def get_param(addr, mode, prog, rel=0):
-    value = prog[addr]
-    if mode == POSITION:
-        return prog[value]
-    elif mode == IMMEDIATE:
-        return value
-    elif mode == RELATIVE:
-        return rel+value
-    else:
-        raise ValueError(f'Unrecognized addressing mode {mode}.')
-
-
-def get_thruster_input(phases, prog, input_=0):
-    for phase, amp in zip(phases, list('abcde')):
-        prog_copy = prog.copy()
-        # print(f'INPUT: ({phase}, {input_})')
-        # print(amp)
-        input_, _, _ = run_prog(0, prog_copy, phase=phase, input_=input_)
-        # print(f'OUTPUT: {input_}')
-    return input_
+def get_params(base, nargs, modes, prog, rel=0):
+    values = [prog[base+i+1] for i in range(nargs)]
+    raw_operands = values[:-1]
+    operands = []
+    for value, mode in zip(raw_operands, modes[:-1]):
+        if mode == POSITION:
+            value = prog[value]
+        elif mode == RELATIVE:
+            value = prog[rel+value]
+        operands.append(value)
+    dest = values[-1]
+    addr_mode = modes[-1]
+    return operands, dest, addr_mode
 
 
 class defaultlist(list):
@@ -165,12 +158,3 @@ class defaultlist(list):
 
     def copy(self):
         return defaultlist(self)
-
-
-def do_put(prog, dest, modes[0], output=output, rel=rel):
-    if modes and modes[0] == IMMEDIATE:
-        print(dest)
-    # print(f'Printing data at {dest}')
-    else:
-        if output == 'stdout':
-            print(prog[dest])

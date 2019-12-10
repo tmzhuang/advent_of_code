@@ -19,6 +19,7 @@ def run_prog(ip, prog):
     except IndexError as e:
         raise ValueError(f'Program executing out of bounds.')
     op_code, nargs, modes = parse_op_code(encoded_op_code)
+    print(op_code, nargs, modes)
     if op_code == END:
         return prog
     else:
