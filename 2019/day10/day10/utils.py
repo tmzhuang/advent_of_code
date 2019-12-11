@@ -1,8 +1,12 @@
-from fractions import Fraction
 from collections import Counter
 import numpy as np
 
 ASTEROID = '#'
+RIGHT = 0,1
+UP = 1,0
+LEFT = 0,-1
+DOWN = -1,0
+
 
 def get_array(filename):
     width = None
@@ -13,13 +17,10 @@ def get_array(filename):
             rows.append(np.array(list(line)))
     return np.array(rows) == ASTEROID
 
+
 def get_asteroids(arr):
     return np.argwhere(arr)
 
-RIGHT_HORIZONTAL = 0
-LEFT_HORIZONTAL = 1
-UP_VERTICAL = 2
-DOWN_VERTICAL = 3
 
 def count_los(asteroids):
     los_counts = {}
@@ -31,21 +32,34 @@ def count_los(asteroids):
         for v in vectors:
             if v[1] == 0:
                 if v[0] < 0:
-                    slopes.append(LEFT_HORIZONTAL)
+                    slopes.append(LEFT)
                 elif v[0] > 0:
-                    slopes.append(RIGHT_HORIZONTAL)
+                    slopes.append(RIGHT)
                 else:
                     #ignore zero vector
                     continue
             elif v[0] == 0:
                 if v[1] < 0:
-                    slopes.append(DOWN_VERTICAL)
+                    slopes.append(DOWN)
                 elif v[1] > 0:
-                    slopes.append(UP_VERTICAL)
+                    slopes.append(UP)
                 else:
                     raise RuntimeError('Unreachable code.')
             else:
-                slopes.append(Fraction(int(v[0]), int(v[1])))
-        breakpoint()
+                slopes.append(reduce(v))
         slope_counts = Counter(slopes)
         los_counts[tuple(a)] = len(slope_counts)
+    return los_counts
+
+
+def max_los(los_counts):
+    return max(los_counts.values())
+
+
+def reduce(vector):
+    while True:
+        gcd = np.gcd.reduce(vector)
+        if gcd == 1:
+            return tuple(vector)
+        else:
+            vector = vector // gcd
