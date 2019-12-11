@@ -1,0 +1,10 @@
+ADD = 1
+MUL = 2
+GET = 3
+PUT = 4
+JNZ = 5
+JZ = 6
+LT = 7
+EQ = 8
+REL = 9
+END = 99
