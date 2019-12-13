@@ -25,11 +25,12 @@ def advance(position, velocity, return_diff=False):
     return result
 
 
-def run_simulation(position, velocity=None, steps=1, capture_state=False, return_history=False):
+def run_simulation(position, velocity=None, steps=1, return_period=True, return_history=False):
     if not velocity:
         velocity = np.zeros(position.shape, dtype=int)
-    if capture_state:
-        init_state = get_state(position, velocity)
+    if return_period:
+        init = get_state(position, velocity)
+        period = np.zeros(len(init), dtype=int)
     i = 1
     positions = [position.copy()]
     velocities = [velocity.copy()]
@@ -44,12 +45,13 @@ def run_simulation(position, velocity=None, steps=1, capture_state=False, return
         velocities.append(velocity.copy())
         # logger.debug(f'{velocities=}')
         # diffs.append(diff)
-        if capture_state:
+        if return_period:
             state = get_state(position, velocity)
-            if state == init_state:
-                logger.info(f'Found matching state.')
-                logger.info(f'{i=}')
-                break
+            for j in range(len(state)):
+                if not period[j] and (init[j] == state[j]):
+                    period[j] = i
+            if np.all(period):
+                return np.lcm.reduce(period)
         # logger.debug(f'{position=}')
         # logger.debug(f'{velocity=}\n\n')
         i += 1
@@ -75,4 +77,6 @@ def get_position(filename):
 
 
 def get_state(position, velocity):
-    return position.tobytes() + velocity.tobytes()
+    return (position[:,0].tobytes() + velocity[:,0].tobytes(),
+            position[:,1].tobytes() + velocity[:,1].tobytes(),
+            position[:,2].tobytes() + velocity[:,2].tobytes())

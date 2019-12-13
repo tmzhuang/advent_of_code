@@ -15,16 +15,17 @@ def main():
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    position = get_position('input1.txt')
-    position, velocity, history = run_simulation(position, steps=2773, return_history=True)
-    p,v = history
-    for i in range(p.shape[1]):
-        if i == 1:
-            moon = p[:,i,:]
-            # moon = v[:,i,:]
-            ax.plot(xs=moon[:,0], ys=moon[:,1], zs=moon[:,2])
-    fig.show()
-    breakpoint()
+    position = get_position('input.txt')
+    period = run_simulation(position, steps=None, return_period=True)
+    print(period)
+    # p,v = history
+    # for i in range(p.shape[1]):
+        # if i == 1:
+            # moon = p[:,i,:]
+            # # moon = v[:,i,:]
+            # ax.plot(xs=moon[:,0], ys=moon[:,1], zs=moon[:,2])
+    # fig.show()
+    # breakpoint()
 
 
 if __name__ == '__main__':
