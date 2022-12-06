@@ -7,14 +7,26 @@ from .utils import run_prog
 LEFT = 0
 RIGHT = 1
 
+UNDISCOVERED = '0'
+WALL = '1'
+PATH = '2'
+ROBOT = '3'
+
+PIXEL_MAPPING = {
+        UNDISCOVERED: ' ',
+        WALL = '#',
+        PATH = '-',
+        ROBOT = 'o'}
+
+
 class Robot:
     def __init__(self, prog):
         self.ip = 0
         self.prog = prog.copy()
         self.messages = deque()
-        self.position = np.array((2,2))
         self.direction = np.array((-1, 0))
         self.map = np.zeros((100,100), dtype=int)
+        self.position = np.array((49,49))
         self.map[self.position[0], self.position[1]] = 1
         self.painted = []
 
@@ -25,6 +37,7 @@ class Robot:
         return str(self)
 
     def read(self):
+        direction
         self.update_map()
         color = self.map[self.position[0], self.position[1]]
         # print(f'Sending current color: {color}')
@@ -40,10 +53,15 @@ class Robot:
         self.paint(color)
         self.move(new_direction)
 
-    def paint(self, color):
-        # print(f'Painting {self.position} color {color}.')
-        self.map[self.position[0], self.position[1]] = color
-        self.painted.append(tuple(self.position))
+    def map_str(self):
+        s = ''
+        for row in self.map:
+            row_str = ''.join(map(str, self.map))
+            for pixel_str in PIXEL_MAPPING.keys():
+                row_str = row_str.replace(pixel_str, PIXEL_MAPPING[pixel_str])
+                s += row_str
+                s += '\n'
+        return s
 
     def move(self, direction):
         # print(f'Moving {direction} from {self.position}.')
